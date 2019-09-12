@@ -838,7 +838,7 @@ class Boomerang  extends MyGameObject
             
             gameObjects.forEach(o=>
             {
-                if (!this.isBig && o.isSmallPickup && o.GetLifeTime() > .5 && !this.heldPickup && o.IsTouching(this))
+                if (!this.isBig && o.isSmallPickup && o.GetLifeTime() > .5 && !o.isHeld && !this.heldPickup && o.IsTouching(this))
                 {
                     o.isHeld = 1;
                     this.heldPickup = o;
