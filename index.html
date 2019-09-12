@@ -19,7 +19,7 @@ Hints
 - You won't take damage while boosting.
 - There are 10 levels.
 - Sand slows down you and enemies.
-- Yellow boormage can grab pickups.
+- Yellow boormang can grab pickups.
 - Blue boomerang does double damage.
 - Beat the game to unlock speed run mode.
 
@@ -316,7 +316,7 @@ function PostRender()
         bigText = 'Game Over!'
         DrawText('Press Escape',mainCanvasSize.x/2, mainCanvasSize.y/2+80, 42);
     }  
-    DrawText(bigText,mainCanvasSize.x/2, mainCanvasSize.y/2-80, 72);
+    DrawText(bigText,mainCanvasSize.x/2, mainCanvasSize.y/2-80, 72, 'center', 2);
    
     {
         // hud
@@ -741,8 +741,7 @@ class Player extends MyGameObject
             return 0;
             
         this.BloodSplat();
-        if (!this.IsDead())
-            PlaySound(1);
+        PlaySound(1);
             
         this.playerDamageTimer.Set(1);
         return damageDone;
@@ -2010,7 +2009,7 @@ function PlaySound(sound, p=0)
         break;
         
         case 2: // player die
-        zzfx(1,0,416,3,.01,.2,8,2,.22); // ZzFX 23250
+        zzfx(.7,0,500,4,.01,-0.2,3,3,0); // ZzFX 23250
         break;
         
         case 3: // get heart
@@ -2022,7 +2021,7 @@ function PlaySound(sound, p=0)
         break;
         
         case 5: // boomerang cut
-        zzfx(.4,.2,370,.2,.1,3.9,13,27.4,.12); // ZzFX 23473
+        zzfx(.3,.2,370,.2,.1,3.9,13,27,.12); // ZzFX 23473
         break;
         
         case 6: // boomerang catch
@@ -2048,7 +2047,7 @@ function PlaySound(sound, p=0)
         break;
         
         case 11: // low health
-        zzfx(.5,.1,418,.1,.79,5,0,1.9,.74); // ZzFX 7364
+        zzfx(.4,.1,418,.1,.79,5,0,1.9,.74); // ZzFX 7364
         break;
 
         case 12: // boost

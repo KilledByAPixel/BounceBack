@@ -43,7 +43,11 @@ let Max=(a, b)=>                       (a>b)? a : b;
 let Clamp=(v, min, max)=>              Min(Max(v, min), max);
 let Percent=(v, a, b)=>                (a==b)? 0 : Clamp((v-a)/(b-a), 0, 1);
 let Lerp=(p, a, b)=>                   a + Clamp(p, 0, 1) * (b-a);
-let FormatTime=(t)=>                   (t/60|0)+':'+(t<10?'0':'')+(t|0)%60;
+let FormatTime=(t)=>                   
+{
+    let s = (t|0)%60;
+    return (t/60|0)+':'+(s<10?'0':'')+s;
+}
 
 class Timer 
 {
