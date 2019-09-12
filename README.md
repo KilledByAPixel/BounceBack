@@ -4,6 +4,8 @@
 
 # [LIVE DEMO!](https://bounceback.3d2k.com)
 
+![Bounceback Image](/screenshot.png)
+
 ### Controls
 * WASD = Move
 * Mouse = Aim
