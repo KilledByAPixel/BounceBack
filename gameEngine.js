@@ -487,7 +487,7 @@ function DrawTile(pos,size,tileX,tileY,angle=0,mirror=0,height=0)
 function DrawText(text, x, y, size,textAlign='center',lineWidth=1,color='#000',strokeColor='#FFF',context=mainCanvasContext)
 {
     context.fillStyle=color;
-    context.font = size+'px arial black'
+    context.font = `900 ${size}px arial`
     context.textAlign=textAlign;
     context.textBaseline='middle';
     context.fillText(text,x,y);

@@ -259,8 +259,8 @@ function Update()
         let p = Percent(t,0,3.3)
         let b = Math.abs(3-4*p)/1.7;
         let c1 =`hsla(${t*99},99%,50%)`;
-        level.DrawText('BOUNCE',   pos.Clone().AddXY(0,-b), 33*p,'center',1,'#000',c1);
-        level.DrawText('BACK',     pos.Clone().AddXY(0,b+1.2), 33*p,'center',1,'#000',c1);
+        level.DrawText('BOUNCE',   pos.Clone().AddXY(0,-b), 33*p,'center',2,'#000',c1);
+        level.DrawText('BACK',     pos.Clone().AddXY(0,b+1.2), 33*p,'center',2,'#000',c1);
 
         if (levelFrame==200)
             level.DrawText('A JS13k 2019 Game',   new Vector2(8,9.5), 14);
@@ -821,8 +821,8 @@ class Boomerang  extends MyGameObject
             this.angleVelocity -= .002;
             if (this.angleVelocity < .1)
             {
-                this.angleVelocity *= .9;
-                this.velocity.Multiply(.9);
+                this.angleVelocity -= .005;
+                this.velocity.Multiply(.8);
                 if (this.angleVelocity < 0)
                     this.angleVelocity = 0;
             }
@@ -889,7 +889,7 @@ class Boomerang  extends MyGameObject
     }
 }
 
-///////////////////////////////////////////////////////////d////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 class Pickup extends MyGameObject
 {
@@ -905,6 +905,7 @@ class Pickup extends MyGameObject
         this.isHeld=0;
         this.differenceFlash = 0;
         this.damageFlashTime = .8;
+        this.radarSize = this.isSmallPickup?1:3;
     }
     
     Update() 
@@ -1985,17 +1986,17 @@ function UpdateAudio()
         if (beatCount>15 && (!(beatCount&1) || Rand() > .5))
         {
             if (beatCount%8==0)
-                lastNote = 0; // return to root note
+                lastNote = 1; // return to root note
             zzfx(.4,0,220*2**(scale[lastNote]/12), (RandInt(2)+1)/2, .05, 0, .4);
             lastNote = (lastNote + (RandInt(6)-2)+scale.length)%scale.length;
         }
         
-        if (beatCount%2==0||beatCount&18)
+        if (beatCount%2==0||beatCount&18||Rand()>.95)
         {
             if (beatCount%4==0)
-                zzfx(.3,.1,1e3,.08,.05,.8,21,51); // ZzFX  highhat
+                zzfx(.3,.2,1e3,.08,.05,.8,21,51); // ZzFX  highhat
             else
-                zzfx(.8,.1,150,.04,.002,.1,1,.5,.15); // ZzFX 17553 kick
+                zzfx(.8,.2,150,.04,.002,.1,1,.5,.15); // ZzFX 17553 kick
         }
     }
 }
@@ -2059,7 +2060,7 @@ function PlaySound(sound, p=0)
         break;
 
         case 14: // boomerang hit solid
-        zzfx(1,.1,70,.1,.23,4.5,2.8,27,.12); // ZzFX 23473
+        zzfx(.8,.1,70,.1,.23,4.5,2.8,27,.12); // ZzFX 23473
         break;
 
         case 15: // boomerang reflect
