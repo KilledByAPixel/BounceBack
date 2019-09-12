@@ -23,12 +23,31 @@
 * Blue boomerang does double damage.
 * Win to unlock speed run mode.
   
+## Game Features
+* Boomerang physics
+* Player boost ability
+* Procedural level generation
+* 3 Enemy types
+* 7 types of pickups
+* Giant and invisible enemy variants
+* Final boss battle
+* Saves gems earned and max level reached
+* Shop system for buying items
+* Minimap
+* Footsteps, blood, and persistant effects system
+* 16 Different sound effects with zzfx
+* Procedurally generated music
+* Speed run mode doesn't effect normal save
+* Low health warning system
+* Level transition effect
+  
 ### Engine Features
-* 2d game object system with pseudo 3d
+* Engine is separated from game code.
+* 2D game object system with pseudo 3D
 * Physics and level tile collision
 * Tile rendering system
-* Particle system
 * Cached level rendering
-* 3d shadows
+* Particle system
+* 3D shadows
 * Input processing system
 * Debug rendering system
