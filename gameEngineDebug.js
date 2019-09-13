@@ -121,7 +121,7 @@ function RenderDebugRects()
         let renderPos = pos.Clone();
         renderPos.Subtract(cameraPos);
         renderPos.Multiply(tileSize);
-        renderPos.Subtract(size.x,size.y);
+        renderPos.Subtract(size);
         renderPos.Multiply(cameraScale);
         mainCanvasContext.strokeStyle=color;
         mainCanvasContext.save();
@@ -165,16 +165,18 @@ function UpdateDebugControls()
 {
     if (debug)
     {
-        if (KeyWasPressed(50))
+        if (KeyWasPressed(50)) // 2
             SaveSnapshot();
-        if (KeyWasPressed(51))
+        if (KeyWasPressed(51)) // 3
             debugCollision = !debugCollision;
-        if (KeyWasPressed(52))
+        if (KeyWasPressed(52)) // 4
             debugParticles = !debugParticles;
-        if (KeyWasPressed(53))
+        if (KeyWasPressed(53)) // 5
             godMode = !godMode;
-        if (KeyWasPressed(145))
+        if (KeyWasPressed(145)) // scroll lock
             debug = 0;
+        if (KeyWasPressed(71)) // g
+            godMode=1;
     }
     
     if (KeyIsDown(70)&&KeyIsDown(82)&&KeyIsDown(65)&&KeyIsDown(78)&&KeyIsDown(75))
@@ -183,7 +185,6 @@ function UpdateDebugControls()
         if (!debug)
             PlaySound(4);
         debug = 1;
-        //godMode = 1;
     }
 }
 

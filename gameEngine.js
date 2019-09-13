@@ -86,9 +86,9 @@ class Color
     constructor(r=0,g=0,b=0,a=1) { this.r=r;this.g=g;this.b=b;this.a=a; }
     Copy(c)                      { this.r=c.r;this.g=c.g;this.b=c.b;this.a=c.a; return this; }
     Clone(s=1)                   { return new Color(this.r*s, this.g*s, this.b*s, this.a*s); }
-    //Add(c)                       { this.r+=c.r;this.g+=c.g;this.b+=c.b;this.a+=c.a; return this; }
+    //Add(c)                     { this.r+=c.r;this.g+=c.g;this.b+=c.b;this.a+=c.a; return this; }
     Subtract(c)                  { this.r-=c.r;this.g-=c.g;this.b-=c.b;this.a-=c.a; return this; }
-    //Multiply(c)                  { (c instanceof Color)? (this.r*=c.r,this.g*=c.g,this.b*=c.b,this.a*=c.a) : (this.r*=c,this.g*=c,this.b*=c,this.a*=c); return this; } 
+    //Multiply(c)                { (c instanceof Color)? (this.r*=c.r,this.g*=c.g,this.b*=c.b,this.a*=c.a) : (this.r*=c,this.g*=c,this.b*=c,this.a*=c); return this; } 
     SetAlpha(a)                  { this.a=a; return this; } 
     Lerp(c,p)                    { return c.Clone().Subtract(c.Clone().Subtract(this).Clone(1-p)); }
     RGBA()                       { return RGBA(this.r, this.g, this.b, this.a); }
@@ -111,7 +111,6 @@ class GameObject
         this.damageTimer = new Timer();
         this.lifeTimer = new Timer();
         this.lifeTimer.Set();
-        this.acceleration = new Vector2();
         this.velocity = new Vector2();
         this.angle = 0;
         this.angleVelocity = 0;
@@ -126,9 +125,6 @@ class GameObject
     
     Update() 
     {
-        // apply accel
-        this.velocity.Add(this.acceleration);
-        
         // apply velocity
         let oldPos = this.pos;
         let newPos = this.pos.Clone();
@@ -157,7 +153,6 @@ class GameObject
         
         // apply physics
         this.velocity.Multiply(this.damping);
-        this.acceleration.Multiply(0);
         this.angle += this.angleVelocity;
         
         if (debugCollision)
@@ -171,6 +166,7 @@ class GameObject
         if (this.IsDead())
             return 0;
         
+        // apply healing
         let startHealth = this.health;
         this.health = Min(this.health+health,this.healthMax);
         return this.health - startHealth;
@@ -181,6 +177,7 @@ class GameObject
         if (this.IsDead() || this.GetDamageTime() < .5)
             return 0;
             
+        // apply damage
         this.damageTimer.Set();
         let startHealth = this.health;
         this.health = Max(this.health-damage,0);
@@ -191,7 +188,6 @@ class GameObject
     }
     
     ReflectDamage(direction){ return 0; }
-    Accelerate(accel)       { this.acceleration.Add(accel); }
     GetLifeTime()           { return this.lifeTimer.Get(); }
     GetDamageTime()         { return this.damageTimer.Get(); }
     GetDamageFlashPercent() { return Clamp(1- this.GetDamageTime()/this.damageFlashTime,0,1); }
@@ -210,7 +206,8 @@ class GameObject
         if (!data.type)
             return 1;
     
-        if (this.height > 1) // allow jumping over objects
+        // allow jumping over objects
+        if (this.height > 1)
             return 0;
     
         return data.object; 
@@ -226,8 +223,6 @@ let frame = 0;
 let time = 1;
 let paused = 0;
 let timeDelta = 1/60;
-//let lastUpdate = 0;
-//let timeBuffer = 0;
 let shadowRenderPass = 0;
 let hitRenderPass = 0;
 let mainCanvasContext;
@@ -243,8 +238,9 @@ let levelSize = 64;
 
 function EngineInit()
 {
+    // set the main canvas size to half size of the window
     mainCanvasContext = mainCanvas.getContext('2d');
-    mainCanvasSize.Set(window.innerWidth/2,window.innerHeight/2);
+    mainCanvasSize.Set(window.innerWidth/2|0,window.innerHeight/2|0);
     mainCanvas.width = mainCanvasSize.x;
     mainCanvas.height = mainCanvasSize.y;
     
@@ -285,26 +281,6 @@ function EngineUpdate()
         mouseIsDown = mouseWasDown = 0;
         keyInputData.map(k=>k.wasDown=k.isDown=0);
     }
-        
-    /* // time regulation, in case running faster then 60 fps
-    let now = Date.now();
-    if (lastUpdate)
-    {
-        // limit to 60 fps
-        let delta = now - lastUpdate;
-        if (timeBuffer + delta < 0)
-        {
-            // running fast
-            requestAnimationFrame(EngineUpdate);
-            return;
-        }
-        
-        timeBuffer += delta;
-        timeBuffer -= timeDelta * 1e3;
-        if (timeBuffer > timeDelta * 1e3)
-            timeBuffer = 0; // if running too slow
-    }
-    lastUpdate = now;*/
 
     // fit canvas to window
     mainCanvasSize.Set(window.innerWidth/2,window.innerHeight/2);
@@ -318,7 +294,8 @@ function EngineUpdate()
     // main update
     if (!paused)
     {
-        let frames = 1; // allow debug speed up or slow down
+        // debug speed up / slow down
+        let frames = 1;
         if (debug && KeyIsDown(107))
             frames = 4;
         if (debug && KeyIsDown(109))
@@ -367,9 +344,7 @@ function RenderGameObjects()
             {
                 if (o.differenceFlash)
                     mainCanvasContext.globalCompositeOperation = 'difference';
-
                 o.Render();
-                
                 mainCanvasContext.globalCompositeOperation = 'source-over';
                 hitRenderPass = 0;
             }
@@ -391,6 +366,7 @@ onmousedown   = function(e) { mouseIsDown=1; }
 onmouseup     = function(e) { mouseIsDown=0; }
 onmousemove   = function(e) 
 { 
+    // convert mouse pos to canvas space
     let rect = mainCanvas.getBoundingClientRect();
     mousePos.Set
     ( 
@@ -423,10 +399,10 @@ function ClearInput()       { keyInputData.map(k=>k.wasDown=k.isDown=0);mouseIsD
 ///////////////////////////////////////////////////////////////////////////////
 // rendering
 
+// shadow settings
 let shadowAlpha      = .5;
 let shadowSkew       = .7;
 let shadowScale      = .7;
-let renderTileShrink = .25; // shrink size of tile to fix bleeding on edges
 
 function DrawScreenTile(x,y,size,tileX,tileY)
 {
@@ -471,7 +447,11 @@ function DrawTile(pos,size,tileX,tileY,angle=0,mirror=0,height=0)
         image = tileMaskCanvas;
         mainCanvasContext.globalAlpha *= hitRenderPass;
     }
+
+    // shrink size of tile to fix bleeding on edges
+    let renderTileShrink = .25;
     
+    /// render the tile
     let s = size.Clone(2*tileSize);
     mainCanvasContext.scale(mirror?-s.x:s.x,s.y);
     mainCanvasContext.drawImage(image,
@@ -505,11 +485,9 @@ class LevelData
 {
     constructor() 
     {
-        // type: 0=solid, 1=grass, 2=sand
-        // object: 0=none, 1=bush, 2=rock
-
-        this.type = 0;
-        this.object = 0;
+        
+        this.type = 0;   // 0=solid, 1=grass, 2=sand
+        this.object = 0; // 0=none, 1=bush, 2=rock
         this.tile = 0;
         this.rotation = 0;
     }
@@ -539,7 +517,7 @@ class Level
 
     IsAreaClear(pos,size,gameObject=0)
     {
-        // check if there is no collision in a given square area
+        // check if there is collision in a given square area
         let y = pos.y;
         let x = pos.x;
         for(let yo = y - size; yo <= y + size; )
@@ -663,6 +641,19 @@ class Level
         }
     }
 
+    ClearBorder()
+    {
+        // set to solid around outside edge
+        let w = levelSize;
+        for(let i = 0; i<w; i++)
+        {
+            this.GetData(i,  0).Clear();
+            this.GetData(i,w-1).Clear();
+            this.GetData(0,  i).Clear();
+            this.GetData(w-1,i).Clear();
+        }
+    }
+    
     DrawEllipse(pos,size,color='#FFF',angle=0)
     {
         let s = new Vector2(1,1).Multiply(size).Multiply(tileSize);
@@ -682,6 +673,8 @@ class Level
         x|=0;
         y|=0;
         let d = this.GetData(x,y);
+        
+        // draw the bottom layer
         let tx = d.tile%8;
         let ty = (d.tile/8|0);
         let pos = new Vector2(x+.5,y+.5);
@@ -689,6 +682,7 @@ class Level
         
         if (d.object)
         {
+            // draw the object/top layer
             tx = (d.object-1)%8;
             ty = 3+((d.object-1)/8|0);
             this.DrawTile(pos, .5, tx, ty);
@@ -705,19 +699,6 @@ class Level
         levelCanvasContext.restore();
     }
     
-    ClearBorder()
-    {
-        // set to solid around outside edge
-        let w = levelSize;
-        for(let i = 0; i<w; i++)
-        {
-            this.GetData(i,  0).Clear();
-            this.GetData(i,w-1).Clear();
-            this.GetData(0,  i).Clear();
-            this.GetData(w-1,i).Clear();
-        }
-    }
-    
     Redraw()
     {
         // cache to offscreen cavnas
@@ -729,6 +710,7 @@ class Level
     
     Render()
     {
+        // draw the entire level (cached on a canvas) onto the main canvas
         let pos = cameraPos.Clone(-cameraScale*tileSize).Add(mainCanvasSize.Clone(.5));
         mainCanvasContext.drawImage
         (
@@ -759,7 +741,10 @@ class Particle
 
     Update()
     {
+        // update physics
         this.pos.Add(this.velocity.Multiply(.9));
+        
+        // remove if dead
         if (this.lifeTimer.Get() > this.lifeTime)
              this.emitter.particles.splice(this.emitter.particles.indexOf(this),1);
         
@@ -769,12 +754,16 @@ class Particle
     
     Render()
     {
+        // get the color
         let p = Percent(this.lifeTimer.Get(), 0, this.lifeTime);
         let c = this.startColor.Clone().Lerp(this.endColor, p);
         c.a *= p<.1? p /.1 : 1; // fade in alpha
         mainCanvasContext.fillStyle=c.RGBA();
-                
+            
+        // get the size
         let size = this.size * cameraScale * tileSize * Lerp(p,1,.5);
+    
+        // get the screen pos and render
         let pos = this.pos.Clone()
             .Subtract(cameraPos)
             .Multiply(tileSize*cameraScale)
@@ -798,10 +787,12 @@ class ParticleEmitter extends GameObject
     
     Update()
     {
+        // update particles
         this.particles.forEach(particle=>particle.Update());
         
         if (this.GetLifeTime() <= .05)
         {
+            // emit new particles
             let secondsPerEmit = 1/200;
             this.emitTimeBuffer += timeDelta;
             while (this.emitTimeBuffer > secondsPerEmit)
@@ -811,7 +802,10 @@ class ParticleEmitter extends GameObject
             }
         }
         else if (!this.particles.length)
-            this.Kill();
+        {
+            // go away when all particles are gone
+            this.Destroy();
+        }
             
         if (debugCollision)
             DebugRect(this.pos, new Vector2(this.size,this.size), '#00F');
@@ -822,7 +816,8 @@ class ParticleEmitter extends GameObject
     Render() { this.particles.forEach(p=>p.Render()); }
     
     AddParticle()
-    {
+    { 
+        // create a new particle with random settings
         this.particles.push
         (
             new Particle

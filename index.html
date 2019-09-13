@@ -14,9 +14,26 @@ Mouse = Aim
 Click = Throw
 Space = Dash
 
+Game Features
+- Boomerang physics & dash ability
+- Procedural level generation
+- 3 Enemy types
+- 7 types of pickups
+- Giant and invisible enemy variants
+- Final boss battle
+- Saves gems earned and max level reached
+- Shop system for buying items
+- Minimap
+- Footsteps, blood, and persistant effects system
+- 16 Different sound effects with zzfx
+- Procedurally generated music
+- Speed run mode doesn't effect normal save
+- Low health warning system
+- Level transition effect
+
 Hints
 - You will keep money after you die!
-- You won't take damage while boosting.
+- You won't take damage while dashing.
 - There are 10 levels.
 - Sand slows down you and enemies.
 - Yellow boormang can grab pickups.
@@ -48,9 +65,10 @@ image-rendering:pixelated;
 
 <canvas id=c1></canvas>
 <canvas id=c2 style=visibility:hidden></canvas>
-<script src='gameEngine.js?36'></script>
-<script src='gameEngineDebug.js?16'></script>
+<script src='gameEngine.js'></script>
+<script src='gameEngineDebug.js'></script>
 <script>
+'use strict';
 
 ///////////////////////////////////////////////////////////////////////////////
 // debug config
@@ -95,6 +113,7 @@ let coinSoundTimer = new Timer();
 
 class PlayerData
 {
+    // track player data between levels (when player is destroyed)
     constructor()
     {
         this.health = 3;
@@ -108,6 +127,8 @@ class PlayerData
 function Init()
 {
     EngineInit();
+    
+    // clear canvas to black so transition starts on a black screen
     mainCanvasContext.fillRect(0,0,mainCanvasSize.x, mainCanvasSize.y);
 
     Reset();
@@ -130,16 +151,19 @@ function Reset()
 
 function NextLevel()
 {
+    // go to next level
     levelFrame = 0;
     levelNumber = nextLevel;
     nextLevel = (nextLevel+1)%11;
+    
+    // track highest level reached
     if (!speedRunMode && levelNumber>warpLevel)
         warpLevel = levelNumber;
     localStorage.kbap_warp = warpLevel;
     
+    // check if is special level
     isFinalLevel = levelNumber==10;
     isStartLevel = !levelNumber;
-    
     if (isStartLevel)
         speedRunMode = 0; // reset speed run on start level
     
@@ -148,21 +172,27 @@ function NextLevel()
 
 function InitLevel()
 {
-    winTimer.UnSet();
-    cameraScale=2;
-    StartTransiton();
-    ClearGameObjects();
-    endLevelTimer.UnSet();
+    // reset level stuff
     levelTimer.Set();
+    winTimer.UnSet();
+    endLevelTimer.UnSet();
+    cameraScale=2;
     levelExit = 0;
     boss = 0;
-    if (!playerData.boomerangs && !playerData.bigBoomerangs)
-        playerData.boomerangs=1; // prevent 0 boomerangs
     
+    // clear everything
+    StartTransiton();
+    ClearGameObjects();
+    
+    // prevent player being stuck with no boomerangs
+    if (!playerData.boomerangs && !playerData.bigBoomerangs)
+        playerData.boomerangs=1;
+    
+    // create the level and player
     GenerateLevel();
     player = new Player(playerStartPos);
     
-    // debug objects
+    // spawn debug objects
     //new Pickup(new Vector2(13,10),0);
     //new SlimeEnemy(new Vector2(8,10),3);
     //new JumpingEnemy(new Vector2(10,10));
@@ -172,33 +202,42 @@ function InitLevel()
 
 function SpawnPickups(pos, chance=1, count=1)
 {
+    // random chance to not drop
     if (Rand()>chance)
         return;
-     
+    
     for(let i=0;i<count;++i)
     {
         let p = new Pickup(pos.Clone(), 
-            RandInt(8)?
-            (RandInt(20)?3:4): // is coin
-            (RandInt(4)?0:1)  // is heart
+            RandInt(8)?        // coin or heart?
+            (RandInt(20)?3:4): // small or big coin?
+            (RandInt(4)?0:1)   // half or whole heart?
         );
+        
+        // add extra velocity to sucessive spawns when dropping multiple
         if (count>1)
             p.velocity = RandVector(.1 + Clamp(i,3,30)*.03*Rand());
     }
 }
 
-function DestroyLevelObject(pos,bounceRock=1) // returns true if bounced
+ // collide with level object if one exists and return if bounced
+function DestroyLevelObject(pos,bounceRock=1)
 {
+    // is something solid there?
     let data = level.GetDataFromPos(pos);
     if (!data.IsSolid())
         return 0;
 
+    // did it hit an object?
     let bounce = 1;
     let type = data.object;
     if (type==1 || type==2)
     {
+        // clear out the tile
         level.GetDataFromPos(pos).object = 0;
         level.DrawTileData(pos.x,pos.y);
+        
+        // small chance of dropping a pickup
         SpawnPickups(pos, .05);
 
         if (type==1)
@@ -234,20 +273,30 @@ function DestroyLevelObject(pos,bounceRock=1) // returns true if bounced
 
 function Update()
 {
-    // save data
     ++levelFrame;
-    if (!speedRunMode)
-        localStorage.kbap_coins = playerData.coins;
-    if (!paused && !winTimer.IsSet() && !player.IsDead())
-        speedRunTime += timeDelta;
     UpdateAudio();
     
+    // save data
+    if (!speedRunMode)
+        localStorage.kbap_coins = playerData.coins;
+        
+    // update speed run time
+    if (!paused && !winTimer.IsSet() && !player.IsDead())
+        speedRunTime += timeDelta;
+    
+    // restart if dead or won
     if ((player.IsDead() || winTimer.IsSet()) && KeyWasPressed(27))
         loadNextLevel = 2;
+        
+    // load next level when ready
     if (endLevelTimer.IsSet() && endLevelTimer.Elapsed())
         loadNextLevel = 1;
+    
+    // debug key N to load next level
     if (debug && KeyWasPressed(78))
         loadNextLevel = 1;
+        
+    // zoom out on final level
     if (isFinalLevel)
         cameraScale = Max(cameraScale-.001,1); 
         
@@ -261,35 +310,31 @@ function Update()
         let c1 =`hsla(${t*99},99%,50%)`;
         level.DrawText('BOUNCE',   pos.Clone().AddXY(0,-b), 33*p,'center',2,'#000',c1);
         level.DrawText('BACK',     pos.Clone().AddXY(0,b+1.2), 33*p,'center',2,'#000',c1);
-
         if (levelFrame==200)
             level.DrawText('A JS13k 2019 Game',   new Vector2(8,9.5), 14);
         if (levelFrame==260)
             level.DrawText('By Frank Force',   new Vector2(8,10.5), 14);
-        /*if (levelFrame==260) 
-        {
-            pos = new Vector2(8,7);
-            level.DrawText('WASD = Move',   pos.AddXY(0, 3.5), 18);
-            level.DrawText('Mouse = Aim',   pos.AddXY(0, h), 18);
-            level.DrawText('Click = Throw', pos.AddXY(0, h), 18);
-            level.DrawText('Space = Dodge', pos.AddXY(0, h), 18);
-        }*/
     }
 }
 
 function PreRender()
 {
+    // camera is always centered on player
     cameraPos.Copy(player.pos);
+    
+    // clear canvas to level color
     mainCanvasContext.fillStyle=levelColor.RGBA();
     mainCanvasContext.fillRect(0,0,mainCanvasSize.x, mainCanvasSize.y);
     
-    if (isStartLevel) // stars
+    if (isStartLevel)
     {
+        // background starfield in start level
         mainCanvasContext.fillStyle='#999';
         for(let i=2e3;i--;)
             mainCanvasContext.fillRect((Math.sin(i)*1e9-time*(i+1e3)/50)%(mainCanvas.width+9)-9,i*9%mainCanvas.height,i%7,i%7);
     }
         
+    // draw the level (bottom layer)
     level.Render();
 }
 
@@ -297,6 +342,7 @@ function PostRender()
 {  
     if (loadNextLevel)
     {
+        // hook to load next level is here so transition effects work!
         if (loadNextLevel==2)
             Reset();
         loadNextLevel = 0;
@@ -305,7 +351,7 @@ function PostRender()
     
     UpdateTransiton();
     
-    // hud
+    // centered hud text
     let bigText = '';
     if (paused)
         bigText = '-paused-'
@@ -354,6 +400,7 @@ function PostRender()
         
         if (speedRunMode)
         {
+            // show time if speed run mode is activated
             let c = (player.IsDead() || winTimer.IsSet())? '#F00' : '#000';
             DrawText(FormatTime(speedRunTime), mainCanvas.width/2, 28, 40, 'center',1,c);
         }
@@ -361,16 +408,12 @@ function PostRender()
         RenderMap();
     }
     
-    // cursor
+    // mouse cursor
     mainCanvas.style.cursor='none'; 
     let mx = mousePos.x|0;
     let my = mousePos.y|0;
     let mw = 2;
     let mh = 15;
-    //mainCanvasContext.rotate(time);
-    //mainCanvasContext.fillStyle='#000'
-    //mainCanvasContext.fillRect(-mw-mg,-mh-mg,mw*2+mg*2,mh*2+mg*2);
-    //mainCanvasContext.fillRect(-mh-mg,-mw-mg,mh*2+mg*2,mw*2+mg*2);
     mainCanvasContext.globalCompositeOperation = 'difference';
     mainCanvasContext.fillStyle='#FFF'
     mainCanvasContext.fillRect(mx-mw,my-mh,mw*2,mh*2);
@@ -380,6 +423,7 @@ function PostRender()
 
 function MazeDataPos(pos)
 {
+    // get the index into the maze array
     let cellRatio = levelMazeSize / levelSize;
     pos = pos.Clone(cellRatio);
     return (pos.x|0) + (pos.y|0) * levelMazeSize;
@@ -395,21 +439,22 @@ function RenderMap()
     let w = 24;
     let o = mainCanvasSize.x-levelMazeSize*w-10;
 
+    // show level number
     y += 2*iconSize;
     if (!isStartLevel)
         DrawText('L-'+ levelNumber, o-10, 24, 32,'right');
+
+    // mark room player is in as visited
+    if (levelMaze[MazeDataPos(player.pos)])
+        levelMaze[MazeDataPos(player.pos)] = -1;
 
     let cellWidth = levelSize / levelMazeSize;
     let playerMazeX = player.pos.x / cellWidth | 0;
     let playerMazeY = player.pos.y / cellWidth | 0;
 
-    if (levelMaze[MazeDataPos(player.pos)])
-        levelMaze[MazeDataPos(player.pos)] = -1; // mark room as visited
-
+    // render minimap
     mainCanvasContext.strokeStyle='#000';
     mainCanvasContext.lineWidth=2;
-
-    // minimap
     mainCanvasContext.strokeRect(o,10,w*levelMazeSize,w*levelMazeSize);
     for(let y=levelMazeSize;y--;)
     for(let x=levelMazeSize;x--;)
@@ -419,8 +464,6 @@ function RenderMap()
         let c = '#0004'; // unexplored invalid
         if (m>0)
             c = '#333'; // unexplored valid
-        //if (m==2)
-        //    c = '#0FF4';
         if (m==-1) 
             c = '#FFF'; // explored
         if (x == playerMazeX && y == playerMazeY)
@@ -432,7 +475,7 @@ function RenderMap()
             mainCanvasContext.strokeRect(o+x*w,10+y*w,w,w);
     }
     
-    //mainCanvasContext.globalCompositeOperation = 'difference';
+    // draw the objects on the minimap
     gameObjects.forEach(object=>
     {
         let r = object.radarSize;
@@ -445,7 +488,6 @@ function RenderMap()
             mainCanvasContext.fillRect(p.x-r,p.y-r,2*r,2*r);
         }
     });
-    //mainCanvasContext.globalCompositeOperation = 'source-over';
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -456,11 +498,11 @@ class MyGameObject extends GameObject
     constructor(pos,tileX=0,tileY=0,size=.5,collisionSize=0,health=1)
     {
         super(pos,tileX,tileY,size,collisionSize,health);
-        this.bloodColor = new Color(.8,0,.05,.5);
         this.walkFrame=0;
         this.rotation=1;
         this.radarSize=1;
         this.isInvisible = 0;
+        this.bloodColor = new Color(.8,0,.05,.5);
         this.bloodAdditive = 0;
     }
     
@@ -490,6 +532,7 @@ class MyGameObject extends GameObject
     
     BloodSplat(scale=1,particles=1)
     {
+        // draw a bunch of random ellipses
         if (this.bloodAdditive)
             levelCanvasContext.globalCompositeOperation='screen';
         for(let i=30;i--;)
@@ -501,7 +544,7 @@ class MyGameObject extends GameObject
         }  
         levelCanvasContext.globalCompositeOperation='source-over';
 
-        
+        // kick off a particle effect
         if (particles)
         {
             let s = scale*this.size.x;
@@ -523,6 +566,7 @@ class MyGameObject extends GameObject
     
     Render()
     {
+        // invisible objects become visible when damaged
         if (this.isInvisible && !shadowRenderPass && !hitRenderPass)
             mainCanvasContext.globalAlpha= .1 + this.GetDamageFlashPercent();
         super.Render();
@@ -537,22 +581,23 @@ class Player extends MyGameObject
     {
         super(pos,0,4,.5,.4,playerData.healthMax);
         this.health = playerData.health;
-        this.boostTimer = new Timer();
+        this.dashTimer = new Timer();
         this.throwTimer = new Timer();
         this.inputTimer = new Timer();
         this.playerDamageTimer = new Timer();
         this.inputTimer.Set(-1);
         this.throwRotation = 0;
         this.posBuffer = [];
-        this.boostWaitTime = 3;
+        this.dashWaitTime = 3;
         this.radarSize=2;
     }
     
-    IsBoosting() { return !this.boostTimer.Elapsed(); }
+    IsDashing() { return !this.dashTimer.Elapsed(); }
     
     CollideLevel(data, pos)
     {
-        if (this.IsBoosting())
+        // destroy level if dashing
+        if (this.IsDashing())
             return DestroyLevelObject(pos);
         else
             return super.CollideLevel(data, pos);
@@ -562,25 +607,24 @@ class Player extends MyGameObject
     
     Update() 
     {
+        // keep player data updated
         playerData.health = this.health;
         if (this.IsDead() || endLevelTimer.IsSet() || this.IsIntro())
         {
-            this.acceleration.Multiply(0);
+            // stop and do no more
             return;
         }
         
         if (this.health <= 1 && healthWarning.Get() > this.health)
         {
+            // health warning
             healthWarning.Set();
             PlaySound(11);
         }
-
-        let isOnSand = this.IsOnSand();
-        //DebugPoint(mousePosWorld);
     
-        // boomerang
         if (MouseWasPressed() && (playerData.boomerangs|| playerData.bigBoomerangs))
         {
+            // throw boomerang
             let isBig = 0;
             if (playerData.bigBoomerangs)
             {
@@ -594,7 +638,7 @@ class Player extends MyGameObject
             this.throwTimer.Set(.4);
         }
     
-        // movement
+        // move input
         let acceleration = new Vector2();
         if (KeyIsDown(65))
             acceleration.x -= 1,this.rotation=0;
@@ -605,50 +649,59 @@ class Player extends MyGameObject
         if (KeyIsDown(83))
             acceleration.y += 1,this.rotation=1;
 
-        if (!this.IsBoosting())
+        let isOnSand = this.IsOnSand();
+        if (this.IsDashing())
         {
-            if (this.boostTimer.IsSet() && this.boostTimer.Get()>this.boostWaitTime)
-            {
-                this.boostTimer.UnSet();
-                PlaySound(16);
-            }
-        
-            this.posBuffer = [];
-            if ((KeyWasPressed(32)||KeyWasPressed(16)) && !this.boostTimer.IsSet())
-            {
-                PlaySound(12);
-                this.boostTimer.Set(.5);
-            }
-        }
-        else
-        {
+            // update dash
             if (!acceleration.x && !acceleration.y)
                 acceleration.Set(-1,0).Rotate(-this.rotation*PI/2);
         
-            isOnSand = 0;
+            // no damage or slow from sand while dashing
             this.damageTimer.Set();
+            isOnSand = 0;
             
+            // track players position for the dash render effect
             if (frame%3==0)
                 this.posBuffer.push(this.pos.Clone());
             if (this.posBuffer.length > 20)
                 this.posBuffer.shift();
         }
+        else
+        {
+            // update non dash
+            this.posBuffer = [];
+            
+            if (this.dashTimer.IsSet() && this.dashTimer.Get()>this.dashWaitTime)
+            {
+                // play sound when dash is ready again
+                this.dashTimer.UnSet();
+                PlaySound(16);
+            }
+        
+            if ((KeyWasPressed(32)||KeyWasPressed(16)) && !this.dashTimer.IsSet())
+            {
+                // start dash
+                PlaySound(12);
+                this.dashTimer.Set(.5);
+            }
+        }
         
         if (acceleration.x || acceleration.y)
         {
+            // apply acceleration
             acceleration.Normalize(.016*(isOnSand?.5:1));
-
-            if (this.IsBoosting())
+            if (this.IsDashing())
                 acceleration.Multiply(2);
-
-            this.Accelerate(acceleration);
+            this.velocity.Add(acceleration);
             this.inputTimer.Set();
         }
         
+        // reset walk frame when input isnt pressed for a while
         if (this.inputTimer.Get() > 1)
             this.walkFrame = 0;
              
-        if (this.throwTimer.Elapsed() && !this.IsBoosting())
+        // update walk if not throwing or dashing
+        if (this.throwTimer.Elapsed() && !this.IsDashing())
            this.UpdateWalk();
         
         super.Update();
@@ -661,18 +714,20 @@ class Player extends MyGameObject
     
         if (this.IsDead() || this.IsIntro() && isStartLevel)
         {
+            // set to dead tile
             this.tileX = 7;
             this.tileY = 3;
             super.Render();
             return;
         }   
         
+        // figure out the tile, rotation and mirror
         this.tileY = 4;
         if (this.rotation&1)
         {
             this.tileX = this.rotation==1?2:3;
             this.mirror = this.walkFrame%2|0;
-            if (!this.throwTimer.Elapsed()||!this.boostTimer.Elapsed())
+            if (!this.throwTimer.Elapsed()||!this.dashTimer.Elapsed())
                 this.tileX += 3;
             else if (this.inputTimer.Get() > 1 && this.rotation==1)
             {
@@ -684,19 +739,21 @@ class Player extends MyGameObject
         {
             this.mirror = this.rotation!=2;
             this.tileX = this.walkFrame%2|0;
-            if (!this.throwTimer.Elapsed()||!this.boostTimer.Elapsed())
+            if (!this.throwTimer.Elapsed()||!this.dashTimer.Elapsed())
                 this.tileX = 4;
         }
            
         let hit = hitRenderPass;
         if (!this.throwTimer.Elapsed())
         {
+            // use the throw rotation if throwing
             this.rotation = this.throwRotation;
             if (this.rotation&1)
                 this.mirror = this.rotation==1;
         }
         if (!shadowRenderPass && hit)
         {
+            // draw the position buffer during the hit render pass when dashing
             mainCanvasContext.globalCompositeOperation = 'screen';
             for(let i=this.posBuffer.length;i--;)
             {
@@ -707,19 +764,20 @@ class Player extends MyGameObject
             mainCanvasContext.globalCompositeOperation = 'difference';
         }
     
-        let b = this.boostTimer.Get();
-        if (!shadowRenderPass && b<this.boostWaitTime+.5)
+        let d = this.dashTimer.Get();
+        if (!shadowRenderPass && d<this.dashWaitTime+.5)
         {
-            hitRenderPass = b<this.boostWaitTime?b/this.boostWaitTime:Math.sin((b-this.boostWaitTime)*PI*4);
+            // show a white outline around the player when dash is charging
+            hitRenderPass = d<this.dashWaitTime?d/this.dashWaitTime:Math.sin((d-this.dashWaitTime)*PI*4);
             DrawTile(this.pos,this.size.Clone(1.1),this.tileX,this.tileY,this.angle,this.mirror,this.height);
             hitRenderPass = hit;
         }
         
         super.Render();
         
-        // draw boomerang on back
         if (playerData.boomerangs || playerData.bigBoomerangs)
         {
+            // draw boomerang on player's back
             let x = playerData.bigBoomerangs?7:0;
             if (this.rotation == 3)
                 DrawTile(this.pos,this.size,x,5);
@@ -730,19 +788,21 @@ class Player extends MyGameObject
     
     Damage(damage) 
     {
+        // extra long damage timer for player
         if (!this.playerDamageTimer.Elapsed())
             return 0;
     
+        // prepvent damage during intro/outro
         if (godMode || endLevelTimer.IsSet() || this.IsIntro() || winTimer.IsSet())
             return 0;
     
+        // try to apply damage
         let damageDone = super.Damage(damage);
         if (!damageDone)
             return 0;
             
         this.BloodSplat();
         PlaySound(1);
-            
         this.playerDamageTimer.Set(1);
         return damageDone;
     }
@@ -787,7 +847,7 @@ class Boomerang  extends MyGameObject
     CollideLevel(data, pos)
     {
         if (data.object)
-            this.damageTimer.Set();
+            this.damageTimer.Set(); // flash when it hits an object
         return DestroyLevelObject(pos,!this.isBig);
     }
     
@@ -798,6 +858,7 @@ class Boomerang  extends MyGameObject
     
         if (!this.angleVelocity)
         {
+            // boomerang is on the ground
             this.radarSize=3;
             this.damageFlashTime = .8;
             this.differenceFlash = 0;
@@ -810,23 +871,27 @@ class Boomerang  extends MyGameObject
         else
         {
             if (endLevelTimer.IsSet())
-                endLevelTimer.Set(1); // wait for boomerang
+                endLevelTimer.Set(1); // wait for boomerang to end level
         
+            // apply throw acceleration
             let a = this.GetLifeTime();
             if (!mouseIsDown || !this.throwFrames)
                 this.throwAccel=0;
             else if (this.throwAccel)
                 this.velocity.Add(this.throwAccel);
         
+            // reduce angular velocity
             this.angleVelocity -= .002;
             if (this.angleVelocity < .1)
             {
+                // slow it down even faster
                 this.angleVelocity -= .005;
                 this.velocity.Multiply(.8);
                 if (this.angleVelocity < 0)
                     this.angleVelocity = 0;
             }
-                
+            
+            // height is proportional to angular velocity
             this.height = this.angleVelocity/2;
             if (!this.throwAccel && this.height > 0)
             {
@@ -840,15 +905,18 @@ class Boomerang  extends MyGameObject
             {
                 if (!this.isBig && o.isSmallPickup && o.GetLifeTime() > .5 && !o.isHeld && !this.heldPickup && o.IsTouching(this))
                 {
+                    // grab object
                     o.isHeld = 1;
                     this.heldPickup = o;
                 }
                 else if ((o.isEnemy||o.isStore) && o.IsTouching(this))
                 {
+                    // hit object
                     if (this.bounceObject == o || o.ReflectDamage(this.velocity))
                     {
                         if (this.bounceObject != o)
                         {
+                            // reflect
                             PlaySound(15);
                             this.bounceObject = o;
                             this.velocity.Multiply(-.4);
@@ -859,19 +927,22 @@ class Boomerang  extends MyGameObject
                     }
                     else if (o.Damage(1+this.isBig))
                     {
-                        if (!isStartLevel) // hack: dont push in hub
-                            o.Accelerate(this.velocity.Clone(.5));
+                        // apply damage
+                        if (!isStartLevel) // dont push in hub
+                            o.velocity.Add(this.velocity.Clone(.5));
                         this.damageTimer.Set();
                     }
                 }
             });
         }
         
+        // let player pick it up
         if ((!this.angleVelocity || this.GetLifeTime() > .5) && !player.IsDead() && player.Distance(this) < .6)
             this.Pickup();
         
         super.Update();
-        
+
+        // set all pickups to match our position
         if (this.heldPickup)
             this.heldPickup.pos.Copy(this.pos).AddXY(0,-.001);
     }
@@ -894,7 +965,6 @@ class Boomerang  extends MyGameObject
 class Pickup extends MyGameObject
 {
     // type: 0=half, 1=whole, 2=container, 3=coin, 4=large coin
-    // 5 small boomerang, 6 large boomerang
     
     constructor(pos, type=0) 
     { 
@@ -910,14 +980,19 @@ class Pickup extends MyGameObject
     
     Update() 
     {
+        // random sparkles
         if (Rand() < .005 && this.damageTimer.Get() > 4*this.damageFlashTime)
-            this.damageTimer.Set(-this.damageFlashTime/2);  // sparkle
+            this.damageTimer.Set(-this.damageFlashTime/2);
         
+        // bob up and down
         this.height = .1+.1*Math.sin(2*time+this.timeOffset);
+        
+        // let player pick it up
         if (!player.IsDead() && player.IsTouching(this))
             this.Pickup();
         else if (boss && boss.IsTouching(this))
         {
+            // boss destroys pickups
             PlaySound(14);
             this.Destroy();
         }
@@ -927,25 +1002,29 @@ class Pickup extends MyGameObject
     
     Pickup()
     {
-        if (this.type==2) // heart container
+        if (this.type==2)
         {
+            // heart container
             ++playerData.healthMax;
             player.healthMax = playerData.healthMax;
             player.Heal(1);
             PlaySound(4);
         }
-        else if (this.type==3) // 1 coin
+        else if (this.type==3)
         {
+            // 1 coin
             PlaySound(10);
             ++playerData.coins;
         }
-        else if (this.type==4) // 5 coin
+        else if (this.type==4)
         {
+            // 5 coin
             PlaySound(10);
             playerData.coins+=5;
         }
-        else // heart
+        else
         {
+            // half or whole heart
             player.Heal(.5+ this.type/2)
             PlaySound(3);
         }
@@ -984,9 +1063,10 @@ class Enemy extends MyGameObject
         if (player.IsTouching(this))
         if (player.Damage(.5))
         {
+            // push player when damaged
             let accel = player.pos.Clone();
             accel.Subtract(this.pos).Normalize(.1);
-            player.Accelerate(accel);
+            player.velocity.Add(accel);
         }
 
         super.Update();
@@ -1007,15 +1087,13 @@ class Enemy extends MyGameObject
             }
         }
 
-        {
-            // spawn pickups
-            let count = 1;
-            if (this.isBig)
-                count = RandIntBetween(3, 5);
-            if (this.isInvisible)
-                count = count * 2;
-            SpawnPickups(this.pos, this.spawnPickup, count);
-        }
+        // spawn pickups
+        let count = 1;
+        if (this.isBig)
+            count = RandIntBetween(3, 5);
+        if (this.isInvisible)
+            count = count * 2;
+        SpawnPickups(this.pos, this.spawnPickup, count);
     }
 }
 
@@ -1049,12 +1127,14 @@ class SlimeEnemy extends Enemy
         level.DrawEllipse(this.pos,(new Vector2(.6,.4)).Multiply(this.size),trailColor);
         levelCanvasContext.globalCompositeOperation='source-over';
      
+        // random movement
         if (this.randMoveTimer.Elapsed())
         {
             this.randMoveTimer.Set(RandBetween(.5,1));
             this.randAccel = RandVector(1.3);
         }
     
+        // calculate acceleration
         let accel = new Vector2();
         if (!player.IsDead() && playerDistance < 15)
             accel.Copy(player.pos)
@@ -1063,7 +1143,7 @@ class SlimeEnemy extends Enemy
         accel.Add(this.randAccel)
             .Multiply(this.difficulty>1?.004:.003)
             .Multiply(this.IsOnSand()?.5:1);
-        this.Accelerate(accel);
+        this.velocity.Add(accel);
     
         // change shape as it moves
         let s = Math.sin(10 * this.GetLifeTime());
@@ -1078,10 +1158,11 @@ class SlimeEnemy extends Enemy
     {
         if (this.healthLevel > 1)
         {
+            // spawn baby slimes
             for(let i=2;i--;)
             {
                 let s = new SlimeEnemy(this.pos, this.healthLevel-1, this.difficulty);
-                s.damageTimer.Set();
+                s.damageTimer.Set(); // prevent them taking damage right away
                 s.isInvisible = this.isInvisible;
                 s.velocity = this.velocity.Clone();
             }
@@ -1115,22 +1196,24 @@ class JumpingEnemy extends Enemy
         
         if (this.jumpWaitTimer.Elapsed() && this.height <= 0)
         {
+            // jump
             this.zVelocity = RandBetween(.15,.2);
             if (this.isBig)
                  this.zVelocity *= 1.2;
             this.jumpWaitTimer.Set(RandBetween(1.5,3));
-            //for(let i=-1;i<=1;i+=2)
-            //    level.DrawEllipse(this.pos.Clone().AddXY(i/5,.2),new Vector2(.4*this.size,.5*this.size),'#1115',RandBetween(-.3,.3));
             this.randOffset = RandVector(RandBetween(0,1));
             this.landTimer.UnSet();
         }
     
+        // update jump
         this.height += this.zVelocity;
         this.zVelocity -= .005;
         if (this.height <= 0)
         {
+            // is on ground
             if (!this.landTimer.IsSet())
             {
+                // just landed
                 this.landTimer.Set(.3);
                 this.BloodSplat(.8,0);
             }
@@ -1138,9 +1221,11 @@ class JumpingEnemy extends Enemy
         }
         else
         {
+            // is in the air
             let accel = new Vector2();
             if (!player.IsDead() && playerDistance < 15)
             {
+                // move towards player
                 accel.Copy(player.pos)
                     .Subtract(this.pos)
                     .ClampLength(1)
@@ -1148,11 +1233,12 @@ class JumpingEnemy extends Enemy
             }
             else
                 accel.Copy(this.randOffset);
-            this.Accelerate(accel.Multiply(this.speed));
+            this.velocity.Add(accel.Multiply(this.speed));
             
             //DebugPoint(player.pos.Clone().Add(this.randOffset));
         }
     
+        // set draw tile when jumping or landed
         this.tileX = 2;
         if (this.jumpWaitTimer.Get() > -.25 || !this.landTimer.Elapsed())
             ++this.tileX;
@@ -1169,16 +1255,16 @@ class ShieldEnemy extends Enemy
     { 
         super(pos,4,2,isBig?1:.5,isBig?.8:.4,type?50:isBig?6:2,isBig); 
         this.moveTimer = new Timer();
-        this.boostTimer = new Timer();
+        this.dashTimer = new Timer();
         this.damping=.8;
         this.bumped=0;
         this.type = type;
-        this.moveReverse = 0;
+        this.moveBackwards = 0;
         this.speed = isBig?.015:.012;
         if (type)
         {
-            this.speed = .018;
             boss = this;
+            this.speed = .018;
         }
         else
             this.bloodColor = new Color(.3,1,0,.5);
@@ -1191,6 +1277,7 @@ class ShieldEnemy extends Enemy
         if (this.damageTimer.Get() < .5)
             return 0;
     
+        // figure out if damge should be reflected
         let d = new Vector2(1,0).Rotate(this.rotation*PI/2);
         let a = direction.Clone().Normalize().DotProduct(d);
         return this.type? (a > .4) : (a < -.4);
@@ -1203,17 +1290,19 @@ class ShieldEnemy extends Enemy
         {
             if (small)
             {
-                if (this.boostTimer.Elapsed()) // change direction if not boosting
+                if (this.dashTimer.Elapsed()) // change direction if not dashing
                     this.rotation = (this.rotation+2)%4;
             }
             this.velocity.Multiply(0);
         }
         
+        // break level objects
         return DestroyLevelObject(pos, !this.type);
     }
     
     Damage(damage) 
     {
+        // prevent player killing the boss after dying
         if (this.type && player.IsDead())
             return 0;
     
@@ -1228,14 +1317,15 @@ class ShieldEnemy extends Enemy
         
         if (this.type && isStartLevel)
         {
+            // title screen - run towards the level exit
             let d = this.pos.x - levelExit.pos.x;
             this.rotation = Math.abs(d) < .5? 1: 0;
-
             if (this.Distance(levelExit) < 1)
                 this.Destroy();
         }
         else if (this.bossIntro)
         {
+            // boss intro, run left and up
             if (this.pos.x>24)
             {
                 this.pos.x = 24
@@ -1249,27 +1339,28 @@ class ShieldEnemy extends Enemy
             if (playerDistance > 20 && !this.type)
                 return;
 
-            if (this.moveTimer.Elapsed() && this.boostTimer.Elapsed())
+            // update ai
+            if (this.moveTimer.Elapsed() && this.dashTimer.Elapsed())
             {
-                this.moveReverse = 0;
+                this.moveBackwards = 0;
                 if (!player.IsDead() && (playerDistance < 15 || this.type))
                 {
+                    // get player direction
                     let d = player.pos.Clone().Subtract(this.pos);
                     let r = d.Rotation();
                     if (!(r&1))
-                        r=(r+2)%4; // hack: left/right is backwards
+                        r=(r+2)%4; // left/right is backwards
                     this.rotation = r;
                     
+                    // boss can randomly move backwards
                     if (this.type)
-                        this.moveReverse = Rand()<.5;
-                    if (this.moveReverse)
+                        this.moveBackwards = Rand()<.5;
+                    if (this.moveBackwards)
                         this.rotation = (this.rotation+2)%4
 
+                    // randomly decide to dash
                     if (Rand()<.2)
-                    {
-                        //this.damageTimer.Set();
-                        this.boostTimer.Set(2);
-                    }
+                        this.dashTimer.Set(2);
                 }
                 else
                     this.rotation = RandInt(4);
@@ -1277,12 +1368,14 @@ class ShieldEnemy extends Enemy
             }
         }
 
+        // apply move acceleration
         let moveAccel = new Vector2(this.speed*(isOnSand?.5:1),0).Rotate(this.rotation*PI/2);
-        if (!this.boostTimer.Elapsed())
-            moveAccel.Multiply((this.boostTimer.Get() < -1)?0:2);
+        if (!this.dashTimer.Elapsed())
+            moveAccel.Multiply((this.dashTimer.Get() < -1)?0:2);
         
         if (this.type && isStartLevel)
         {
+            // title screen 
             if (playerDistance > 10.5)
                 moveAccel.Multiply(0);
         }
@@ -1298,7 +1391,8 @@ class ShieldEnemy extends Enemy
                     moveAccel.Multiply(0);
                 if (this.pos.y < 21)
                 {
-                    moveAccel.Multiply(0); // wait to get hit
+                    // wait to get hit
+                    moveAccel.Multiply(0);
                     this.rotation = 1;
                     this.walkFrame += .021;
                 }
@@ -1308,6 +1402,7 @@ class ShieldEnemy extends Enemy
                 this.bossIntro = 0;
                 if (this.size.x<2)
                 {
+                    // grow giant
                     this.size.AddXY(.005,.005);
                     this.collisionSize = this.size.x*.8;
                     moveAccel.Multiply(0);
@@ -1321,8 +1416,10 @@ class ShieldEnemy extends Enemy
             }
         }
         
-        this.velocity.Add(moveAccel.Multiply(this.moveReverse?-1:1));
+        // apply acceleration
+        this.velocity.Add(moveAccel.Multiply(this.moveBackwards?-1:1));
     
+        // set the tile and mirror
         if (this.rotation&1)
         {
             this.tileX = (this.rotation==1)?6:7;
@@ -1336,6 +1433,7 @@ class ShieldEnemy extends Enemy
         
         if (this.type)
         {
+            // if boss, offset the tile position
             this.tileY=3;
             this.tileX-=2;
         }
@@ -1351,8 +1449,9 @@ class ShieldEnemy extends Enemy
         if (this.type)
         {
             boss = 0;
-            if  (isFinalLevel)
+            if (isFinalLevel)
             {
+                // player win
                 new Pickup(this.pos, 2);
                 SpawnPickups(this.pos,1,40);
                 winTimer.Set();
@@ -1361,6 +1460,7 @@ class ShieldEnemy extends Enemy
                 speedRunTime=speedRunTime|0;
                 if (speedRunMode && (!speedRunBestTime || speedRunTime < speedRunBestTime))
                 {
+                    // track best speed run time
                     speedRunBestTime = speedRunTime;
                     localStorage.kbap_bestTime=speedRunBestTime;
                 }
@@ -1377,6 +1477,8 @@ class Store extends MyGameObject
     constructor(pos) 
     {
         super(pos,7,1,.5,.5);
+        
+        // spawn random items
         this.count = isStartLevel||isFinalLevel?3:2 + RandInt(2);
         let o = 1-this.count;
         for(let i=this.count;i--;)
@@ -1408,7 +1510,7 @@ class Store extends MyGameObject
     
     Update()
     {        
-        // hack: draw carpet after being spawned
+        // draw carpet after being spawned
         if (this.GetLifeTime()<.1)
         {
             let p = this.pos.Clone().AddXY(0,2).Multiply(tileSize);
@@ -1419,9 +1521,10 @@ class Store extends MyGameObject
             levelCanvasContext.fillRect(p.x-w,p.y-30,w*2,40);
         }
     
-        this.mirror = player.pos.x<this.pos.x; // face player
-        if (!buyTimer.Elapsed()) // jump on buy
+        this.mirror = player.pos.x<this.pos.x; // allways face player
+        if (!buyTimer.Elapsed())
         {
+            // jump on buy
             let b = buyTimer.Get();
             this.height = -b*(.5-.5*Math.cos(6*PI*b))/2;
         }
@@ -1447,6 +1550,8 @@ class StoreItem extends MyGameObject
         this.type = type;
         this.cost = 5;
         this.wasTouching=0;
+        
+        // set up tile and cost
         if (this.type == 1)
             this.cost = 50;
         if (this.type == 2)
@@ -1459,7 +1564,8 @@ class StoreItem extends MyGameObject
             this.cost = 90;
             this.tileX = 7;
         }
-            
+    
+        // randomize cost
         if (!isStartLevel)
             this.cost *= RandBetween(.5,1.5);
         this.cost = Clamp(this.cost, 1, 99);
@@ -1468,6 +1574,7 @@ class StoreItem extends MyGameObject
     
     Update()
     {
+        // let player pickup
         if (!player.IsDead() && player.IsTouching(this))
         {
             if (!this.wasTouching)
@@ -1487,11 +1594,13 @@ class StoreItem extends MyGameObject
     {
         if (this.cost>playerData.coins)
         {
+            // player doesn't have enough money
             PlaySound(15);
             this.damageTimer.Set();
             return;
         }
         
+        // give player the item
         if (this.type < 2)
             (new Pickup(this.pos,this.type+1)).Pickup();
         else 
@@ -1506,11 +1615,10 @@ class StoreItem extends MyGameObject
     {
         if (!shadowRenderPass && !hitRenderPass)
         {
+            // draw the price
             SetCanvasTransform(this.pos.Clone().AddXY(0,-1), this.size);
-
             DrawText(this.cost,-6,0,14,'left',.5,this.GetDamageTime()<.5?"#F00":"#000");
             DrawScreenTile(-10,-1,4,5,5);
-
             mainCanvasContext.restore();
         }
         
@@ -1533,46 +1641,62 @@ class LevelExit extends MyGameObject
        
     Update() 
     {
+        // bob and spin
         this.height =.1+.1*Math.sin(5*time);
         this.angleVelocity =.05/(this.size+.1); 
         
+        let playerOffset = this.pos.Clone().Subtract(player.pos);
+        let playerDistance = playerOffset.Length();
         let radius = this.size.x;
-        if (this.type==1) // is opening rather then closing
+        if (this.type==1)
         {
+            // incomming portal as player spawns in
             if (levelFrame==60)
                 PlaySound(13);
         
+            // get smaller and go away
             radius = Max(0,1 - levelTimer.Get()/2);
             if (radius <= 0)
                 this.Destroy();
         }
         else if (this.closeTimer.IsSet())
+        {
+            // get smaller if closing
             radius = -this.closeTimer.Get();
+        }
         else if (this.GetLifeTime() < 1)
         {
+            // open up when it first appears
             let t = this.GetLifeTime();
             radius = Min(t*2,1);
         }
-        else if (!player.IsDead() && player.Distance(this) < 3 && player.boostTimer.Elapsed())
+        else if (!player.IsDead() && playerDistance < 3 && player.dashTimer.Elapsed())
         {
-            let a = this.pos.Clone().Subtract(player.pos);
-            let l = a.Length();
-            if (l < .5)
+            // player is close to portal
+            if (playerDistance < .5)
             {
+                // player entered portal
                 if (isStartLevel && this.type == 3)
                 {
-                    speedRunMode = 1; // start speed run mode
+                    // speed run portal
+                    speedRunMode = 1;
                     speedRunTime = 0;
                     playerData = new PlayerData();
+                }
+                if (this.type == 2)
+                {
+                    // warp portal
+                    nextLevel = warpLevel; 
                 }
                 PlaySound(13);
                 endLevelTimer.Set(1);
                 this.closeTimer.Set(1);
-                if (this.type == 2)
-                    nextLevel = warpLevel;
             }
             else
-                player.velocity.Add(a.Normalize(.005/l));
+            {
+                // pull player into portal
+                player.velocity.Add(playerOffset.Normalize(.005/playerDistance));
+            }
         }
         
         radius = Max(0,radius);
@@ -1601,7 +1725,8 @@ class LevelExit extends MyGameObject
         }   
         
         if (this.type > 1 && !shadowRenderPass  && !this.closeTimer.IsSet())
-        {
+        { 
+            // render warp or speed run text
             let text = (this.type == 2)? 'Warp '+warpLevel : 'Speed Run';
             DrawText(text,0,-24,14,'center',1,color,'#000');
             if (this.type == 3 && speedRunBestTime)
@@ -1617,49 +1742,28 @@ class LevelExit extends MyGameObject
     
 function GenerateMaze(cellCount)
 {
+    // 2d maze
     let size = levelMazeSize;
     let cells = [];
     cells.length = size*size;
     cells.fill(0);
     let GetCell=(x,y)=>cells[x+y*size];
     let SetCell=(x,y,v=1)=>cells[x+y*size]=v;
-    let IsOpen=(x,y)=>(IsArrayValid(x,y,size)? cells[x+y*size] : 0);
-    
-    let IsEnd=(xo,yo)=>
-    {
-        let n = 0;
-        n += IsOpen(xo+1,yo);
-        n += IsOpen(xo-1,yo);
-        n += IsOpen(xo,yo+1);
-        n += IsOpen(xo,yo-1);
-        return n<=1;
-    }
-    
-    let CheckMove=(xo,yo,xd,yd)=>
-    !(
-        !IsArrayValid(xo+xd,yo+yd,size) || // must be valid cell
-        IsOpen(xo+xd,yo+yd) ||             // must be solid
-
-        // surrounding cells in that direction must be solid
-        IsOpen(xo+xd*2,yo+yd*2) ||
-        IsOpen(xo+xd*2+yd,yo+yd*2+xd) ||
-        IsOpen(xo+xd*2-yd,yo+yd*2-xd) ||
-        IsOpen(xo+xd+yd,yo+yd+xd) ||
-        IsOpen(xo+xd-yd,yo+yd-xd)
-    );
     
     // set start pos (it may change when generating the level)
-    let xStart=RandInt(4);
-    let yStart=RandInt(4);
+    let xStart=RandInt(levelMazeSize);
+    let yStart=RandInt(levelMazeSize);
     
-    if (isStartLevel) // hub level
+    if (isStartLevel)
     {
+        // hub level
         xStart=yStart=0;
         SetCell(0,0);
         SetCell(1,0);
     }
-    if (isFinalLevel) // boss level
+    if (isFinalLevel)
     {
+        // boss level
         xStart=0;
         yStart=3;
         SetCell(0,3);
@@ -1674,6 +1778,32 @@ function GenerateMaze(cellCount)
     playerStartPos = new Vector2(xStart, yStart);
     if (isStartLevel || isFinalLevel)
         return cells;
+        
+    // depth first search style maze generation
+    // https://en.wikipedia.org/wiki/Maze_generation_algorithm#Depth-first_search
+    let IsOpen=(x,y)=>(IsArrayValid(x,y,size)? cells[x+y*size] : 0);
+    let OpenNeighborCount=(xo,yo)=>
+    {
+        let n = 0;
+        n += IsOpen(xo+1,yo);
+        n += IsOpen(xo-1,yo);
+        n += IsOpen(xo,yo+1);
+        n += IsOpen(xo,yo-1);
+        return n;
+    }
+    
+    let CheckMove=(xo,yo,xd,yd)=>
+    !(
+        !IsArrayValid(xo+xd,yo+yd,size) || // must be valid cell
+        IsOpen(xo+xd,yo+yd) ||             // must be solid
+
+        // surrounding cells in that direction must be solid
+        IsOpen(xo+xd*2,yo+yd*2) ||
+        IsOpen(xo+xd*2+yd,yo+yd*2+xd) ||
+        IsOpen(xo+xd*2-yd,yo+yd*2-xd) ||
+        IsOpen(xo+xd+yd,yo+yd+xd) ||
+        IsOpen(xo+xd-yd,yo+yd-xd)
+    );
     
     let x=xStart;
     let y=yStart;
@@ -1715,8 +1845,8 @@ function GenerateMaze(cellCount)
         }
         else if (stack.length)
         {
-            // track dead ends
-            if (IsEnd(x,y))
+            // track dead ends (to put stores and powerups there)
+            if (OpenNeighborCount(x,y)<=1)
                 SetCell(x,y,2+endCount++);
             else if (Rand() < .5) // change up start pos
                 playerStartPos.Set(x,y);
@@ -1757,6 +1887,7 @@ function GenerateLevelInternal()
         if (!levelMaze[x+y*levelMazeSize])
             continue;
 
+        // for each open maze cell, fill out a circle of open space
         let pos = (new Vector2(x+.5,y+.5)).Multiply(levelSize/levelMazeSize);
         let radius = isFinalLevel?12:9;
         level.FillCircleType(pos,radius,1);
@@ -1808,7 +1939,7 @@ function GenerateLevelInternal()
         // clear player start
         level.FillCircleObject(playerStartPos,RandBetween(2,5),0);
 
-        // spawn enemies
+        // spawn enemies with a controled amount of total power
         let totalEnemyPower = levelNumber*5;
         let tries = 0;
         while(totalEnemyPower>0)
@@ -1819,9 +1950,10 @@ function GenerateLevelInternal()
             // pick random pos
             let pos = new Vector2(RandBetween(0,levelSize),RandBetween(0,levelSize));
 
+            // must be open maze cell except level 1
             let m = levelMaze[MazeDataPos(pos)]
             if (!m || (m==2 && levelNumber>1))
-                continue;
+                continue; 
 
             // must not be near player
             if (pos.Distance(playerStartPos) < 15)
@@ -1833,10 +1965,12 @@ function GenerateLevelInternal()
             if (!level.IsAreaClear(pos,2))
                 continue;
 
+            // spawn enemy
             let enemyPower = 0;
             let e;
-            if (Rand() < .33 || levelNumber<=1) // slime
+            if (Rand() < .33 || levelNumber<=1)
             {
+                // slime enemy
                 let healthLevel = RandIntBetween(1,3);
                 if (Rand() < .1 && levelNumber > 5)
                     healthLevel = 4;
@@ -1845,13 +1979,14 @@ function GenerateLevelInternal()
                 e = new SlimeEnemy(pos,healthLevel,difficulty);
                 enemyPower = difficulty*healthLevel;
             }
-            else if (levelNumber != 3 && (Rand() < .5 || levelNumber<=2)) // jumper
+            else if (levelNumber != 3 && (Rand() < .5 || levelNumber<=2))
             {
+                // jumping enemy
                 let isBig = Rand() < .1 && levelNumber > 3;
                 e = new JumpingEnemy(pos,isBig);
                 enemyPower = isBig?6:2;
             }
-            else // shielder
+            else // shield enemy
             {
                 let isBig = Rand() < .1 && levelNumber > 4;
                 e = new ShieldEnemy(pos,0,isBig);
@@ -1859,7 +1994,8 @@ function GenerateLevelInternal()
             }
             if (levelNumber > 4 && Rand()<.1)
             {
-                e.isInvisible = 1; // random invisible enemy
+                 // random invisible enemy
+                e.isInvisible = 1;
                 enemyPower *= 2;
             }
                 
@@ -1868,14 +2004,9 @@ function GenerateLevelInternal()
     }
     
     // spawn stores and other special objects
-    if (isFinalLevel)
+    if (isStartLevel)
     {
-        new Store(new Vector2(43,47));
-        new ShieldEnemy(playerStartPos.Clone().Add(new Vector2(.5,0)), 1);
-        new Pickup(new Vector2(24,19.5), 2);
-    }
-    else if (isStartLevel)
-    {
+        // title screen
         new Store(new Vector2(24,3.5));
         new ShieldEnemy(playerStartPos.Clone(), 1);
         new Pickup(playerStartPos.Clone().Add(new Vector2(16,0)), 2);
@@ -1886,8 +2017,16 @@ function GenerateLevelInternal()
         if (localStorage.kbap_won)
             new LevelExit(new Vector2(29.5,13),3); // speed run
     }
+    else if (isFinalLevel)
+    {
+        // boss level
+        new Store(new Vector2(43,47));
+        new ShieldEnemy(playerStartPos.Clone().Add(new Vector2(.5,0)), 1);
+        new Pickup(new Vector2(24,19.5), 2);
+    }
     else
     {
+        // spawn stores and special powerups
         for(let x=levelMazeSize;x--;)
         for(let y=levelMazeSize;y--;)
         {
@@ -1896,8 +2035,9 @@ function GenerateLevelInternal()
             {
                 let p = new Vector2(x+.5,y+.5).Multiply(levelSize/levelMazeSize);
                 let d = p.Distance(playerStartPos);
-                if (d>30&&Rand()<.3) // random powerup spawn
+                if (d>30&&Rand()<.3)
                 {
+                    // random powerup spawn
                     if (Rand()>.5)
                         new Pickup(p, 2);
                     else
@@ -1930,6 +2070,7 @@ let transitionCanvas = c2;
 let transitionCanvasContext = transitionCanvas.getContext('2d');
 function StartTransiton()
 {
+    // copy main canvas to transition canvas
     transitionTimer.Set();
     transitionCanvas.width = mainCanvasSize.x;
     transitionCanvas.height = mainCanvasSize.y;
@@ -1942,6 +2083,7 @@ function UpdateTransiton()
     if (transitionTime > 2)
         return;
         
+    // render stored main canvas with circle transition effect
     mainCanvasContext.save();
     mainCanvasContext.beginPath();
     let r = transitionTime*mainCanvasSize.x/2;
@@ -1968,6 +2110,7 @@ function UpdateAudio()
 
     if (coinSoundTimer.IsSet() && coinSoundTimer.Elapsed())
     {
+        // coin sound plays twice quickly with higher pitch the second time
         PlaySound(10, 800)
         coinSoundTimer.UnSet();
     }
@@ -1975,21 +2118,27 @@ function UpdateAudio()
     if (!(isStartLevel || winTimer.IsSet()))
         return;
         
-    // play music
-    let scale = [-5,0,2,4,7,12,-5,-8];
+    // update music
+    let scale = [-5,0,2,4,7,12,-5,-8]; // major pentatonic scale
     if (beatTimer.Elapsed())
     {
         ++beatCount;
         beatTimer.Set(.5);
         
+        // melody
         if (beatCount>15 && (!(beatCount&1) || RandInt(2)))
         {
             if (beatCount%8==0)
-                lastNote = 1; // return to root note
+                lastNote = 1; // return to root note every 8 beats
+            
+            // play the note
             zzfx(.4,0,220*2**(scale[lastNote]/12), (RandInt(2)+1)/2, .05, 0, .4);
+            
+            // random walk to another note in the scale
             lastNote = (lastNote + (RandInt(6)-2)+scale.length)%scale.length;
         }
         
+        // precussion
         if (beatCount%2==0||beatCount&18||!RandInt(20))
         {
             if (beatCount%4==0)
@@ -2042,7 +2191,7 @@ function PlaySound(sound, p=0)
 
         case 10: // coin
         if (!coinSoundTimer.IsSet())
-            coinSoundTimer.Set(.05);
+            coinSoundTimer.Set(.05); // trigger coin sound to play again
         zzfx(1,.01,800+p,.2,.05); // ZzFX 98600
         break;
         
@@ -2050,7 +2199,7 @@ function PlaySound(sound, p=0)
         zzfx(.4,.1,418,.1,.79,5,0,1.9,.74); // ZzFX 7364
         break;
 
-        case 12: // boost
+        case 12: // dash
         zzfx(1,.1,319,.4,.08,6.6,3.2,2.6,.59); // ZzFX 79527
         break;
 
