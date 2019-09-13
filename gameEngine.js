@@ -85,13 +85,12 @@ class Color
 {
     constructor(r=0,g=0,b=0,a=1) { this.r=r;this.g=g;this.b=b;this.a=a; }
     Copy(c)                      { this.r=c.r;this.g=c.g;this.b=c.b;this.a=c.a; return this; }
-    Clone()                      { return new Color(this.r, this.g, this.b, this.a); }
-    Add(c)                       { this.r+=c.r;this.g+=c.g;this.b+=c.b;this.a+=c.a; return this; }
+    Clone(s=1)                   { return new Color(this.r*s, this.g*s, this.b*s, this.a*s); }
+    //Add(c)                       { this.r+=c.r;this.g+=c.g;this.b+=c.b;this.a+=c.a; return this; }
     Subtract(c)                  { this.r-=c.r;this.g-=c.g;this.b-=c.b;this.a-=c.a; return this; }
-    Multiply(c)                  { (c instanceof Color)? (this.r*=c.r,this.g*=c.g,this.b*=c.b,this.a*=c.a) : (this.r*=c,this.g*=c,this.b*=c,this.a*=c); return this; } 
-    ScaleBrightness(b)           { this.r*=b;this.g*=b;this.b*=b; return this; } 
+    //Multiply(c)                  { (c instanceof Color)? (this.r*=c.r,this.g*=c.g,this.b*=c.b,this.a*=c.a) : (this.r*=c,this.g*=c,this.b*=c,this.a*=c); return this; } 
     SetAlpha(a)                  { this.a=a; return this; } 
-    Lerp(c,p)                    { return this.Add(c.Clone().Subtract(this).Multiply(p)); }
+    Lerp(c,p)                    { return c.Clone().Subtract(c.Clone().Subtract(this).Clone(1-p)); }
     RGBA()                       { return RGBA(this.r, this.g, this.b, this.a); }
 }
 
