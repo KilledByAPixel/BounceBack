@@ -287,7 +287,7 @@ function PreRender()
     {
         mainCanvasContext.fillStyle='#999';
         for(let i=2e3;i--;)
-            mainCanvasContext.fillRect((Math.sin(i)*1e9-time*(i+1e3)/50)%2e3-9,i*9%2e3,i%7,i%7);
+            mainCanvasContext.fillRect((Math.sin(i)*1e9-time*(i+1e3)/50)%(mainCanvas.width+9)-9,i*9%mainCanvas.height,i%7,i%7);
     }
         
     level.Render();
@@ -1982,7 +1982,7 @@ function UpdateAudio()
         ++beatCount;
         beatTimer.Set(.5);
         
-        if (beatCount>15 && (!(beatCount&1) || Rand() > .5))
+        if (beatCount>15 && (!(beatCount&1) || RandInt(2)))
         {
             if (beatCount%8==0)
                 lastNote = 1; // return to root note
@@ -1990,7 +1990,7 @@ function UpdateAudio()
             lastNote = (lastNote + (RandInt(6)-2)+scale.length)%scale.length;
         }
         
-        if (beatCount%2==0||beatCount&18||Rand()>.95)
+        if (beatCount%2==0||beatCount&18||!RandInt(20))
         {
             if (beatCount%4==0)
                 zzfx(.3,.2,1e3,.08,.05,.8,21,51); // ZzFX  highhat
