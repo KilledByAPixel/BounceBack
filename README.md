@@ -24,8 +24,7 @@
 * Win to unlock speed run mode.
   
 ## Game Features
-* Boomerang physics
-* Player boost ability
+* Boomerang physics & boost ability
 * Procedural level generation
 * 3 Enemy types
 * 7 types of pickups
@@ -42,7 +41,8 @@
 * Level transition effect
   
 ### Engine Features
-* Engine is separated from game code.
+* Engine is separated from game code
+* Object oriented architecture
 * 2D game object system with pseudo 3D
 * Physics and level tile collision
 * Tile rendering system
@@ -51,3 +51,9 @@
 * 3D shadows
 * Input processing system
 * Debug rendering system
+
+### Engine Debug Features
+* Debug console
+* Debug rendering
+* Debug controls
+* Save snapshot
