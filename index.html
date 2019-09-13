@@ -179,7 +179,7 @@ function SpawnPickups(pos, chance=1, count=1)
     {
         let p = new Pickup(pos.Clone(), 
             RandInt(8)?
-            (RandInt(12)?3:4): // is coin
+            (RandInt(20)?3:4): // is coin
             (RandInt(4)?0:1)  // is heart
         );
         if (count>1)
@@ -1131,7 +1131,7 @@ class JumpingEnemy extends Enemy
         {
             if (!this.landTimer.IsSet())
             {
-                this.landTimer.Set(.5);
+                this.landTimer.Set(.3);
                 this.BloodSplat(.8,0);
             }
             this.height = this.zVelocity = 0;
