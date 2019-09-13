@@ -2,7 +2,7 @@
 # B O U N C E B A C K
 ### A game for JS13k by Frank Force
 
-# [LIVE DEMO!](https://js13kgames.com/entries/bounce-back)
+# [PLAY THE GAME!](https://js13kgames.com/entries/bounce-back)
 
 ![Bounceback Image](/screenshot.png)
 
