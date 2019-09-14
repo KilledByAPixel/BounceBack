@@ -1235,6 +1235,7 @@ class ShieldEnemy extends Enemy
         {
             boss = this;
             this.speed = .018;
+            this.bloodAdditive = 0;
         }
         else
             this.bloodColor = new Color(.3,1,0,.5);

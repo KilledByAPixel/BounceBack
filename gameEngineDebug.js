@@ -23,10 +23,9 @@
     - save snapshot
 */
 
+"use strict"; // strict mode
 ///////////////////////////////////////////////////////////////////////////////
 // debug
-
-"use strict"; // strict mode
 
 let debugFrame = 0;
 let debugConsole = 0;
