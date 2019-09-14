@@ -550,7 +550,7 @@ class Player extends MyGameObject
         this.throwTimer = new Timer();
         this.inputTimer = new Timer();
         this.playerDamageTimer = new Timer();
-        this.inputTimer.Set(-1);
+        this.inputTimer.Set();
         this.throwRotation = 0;
         this.posBuffer = [];
         this.dashWaitTime = 3;
@@ -690,22 +690,27 @@ class Player extends MyGameObject
         this.tileY = 4;
         if (this.rotation&1)
         {
+            // facing left or right
+            // walk by toggling betwen 2 frames and mirror to face direction
             this.tileX = this.rotation==1?2:3;
             this.mirror = this.walkFrame%2|0;
             if (!this.throwTimer.Elapsed()||!this.dashTimer.Elapsed())
-                this.tileX += 3;
+                this.tileX += 3; // throw/dash frame
             else if (this.inputTimer.Get() > 1 && this.rotation==1)
             {
+                // idle
                 this.tileX = 7;
                 this.mirror = (this.inputTimer.Get()/2|0)&1;
             }
         }
         else
         {
+            // facing up or down
+            // walk by toggling mirror and select frame to face direction
             this.mirror = this.rotation!=2;
             this.tileX = this.walkFrame%2|0;
             if (!this.throwTimer.Elapsed()||!this.dashTimer.Elapsed())
-                this.tileX = 4;
+                this.tileX = 4; // throw/dash frame
         }
            
         let hit = hitRenderPass;
@@ -1387,11 +1392,13 @@ class ShieldEnemy extends Enemy
         // set the tile and mirror
         if (this.rotation&1)
         {
+            // facing left or right
             this.tileX = (this.rotation==1)?6:7;
             this.mirror = this.walkFrame%2|0;
         }
         else
         {
+            // facing up or down
             this.mirror = this.rotation;
             this.tileX = 4 + (this.walkFrame%2|0);
         }
