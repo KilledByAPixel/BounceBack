@@ -30,9 +30,9 @@
     - A simple particle effect system.
 */
 
+"use strict"; // strict mode
 ///////////////////////////////////////////////////////////////////////////////
 // config
-'use strict';
 
 let godMode = 0;
 let debug = 0;
