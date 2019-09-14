@@ -65,8 +65,8 @@
 * Remove all debug code, godMode, and soundEnable
 * Use Google Closure on Advanced https://closure-compiler.appspot.com/home
 * Use terser with extra compression turned off https://xem.github.io/terser-online/
-* Put eveything into the same html file
-* Zip the file
+* Put eveything into the same html file and remove any whitespace
+* Zip the index.html and tiles.png files
 * Zip the zip with advzip using the settings "-z -4 -i 1000 BounceBack.zip" https://github.com/amadvance/advancecomp
 * Say a small prayer to the gods of JavaScript
-* The final result should be a few bytes shy of 13k!
+* The final result should hopefully be under 13k!
