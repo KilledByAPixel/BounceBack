@@ -57,3 +57,16 @@
 * Debug rendering
 * Debug controls
 * Save snapshot
+
+### Minification Notes
+* The official release is under 13k
+* The tile.png file has 14 color palette exported from Gimp with all extra save data disabled.
+* First combine all javascript together
+* Remove all debug code, godMode, and soundEnable
+* Use Google Closure on Advanced https://closure-compiler.appspot.com/home
+* Use terser with extra compression turned off https://xem.github.io/terser-online/
+* Put eveything into the same html file
+* Zip the file
+* Zip the zip with advzip using the settings "-z -4 -i 1000 BounceBack.zip" https://github.com/amadvance/advancecomp
+* Say a small prayer to the gods of JavaScript
+* The final result should be a few bytes shy of 13k!
