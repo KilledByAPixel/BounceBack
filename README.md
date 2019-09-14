@@ -73,5 +73,4 @@
 * Say a small prayer to the gods of JavaScript
 * The final result should hopefully be under 13k!
 
-
 ![Bounceback Thumbnail](/screenshotTiny.png)
