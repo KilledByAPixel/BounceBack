@@ -12,8 +12,6 @@
 * Click = Throw
 * Space = Dash
 
-![Avatar](/avatar.gif)
-
 ### Hints
 * Boosting protects you from damage.
 * Buy items to help you survive.
@@ -72,5 +70,3 @@
 * Zip the zip with advzip using the settings "-z -4 -i 1000" https://github.com/amadvance/advancecomp
 * Say a small prayer to the gods of JavaScript
 * The final result should hopefully be under 13k!
-
-![Bounceback Thumbnail](/screenshotTiny.png)
