@@ -1,6 +1,6 @@
 ## When life gets you down, it's never too late to...
 # B O U N C E B A C K
-### A game for JS13k by Frank Force
+### A Boomerang Roguelite Game for JS13k by Frank Force
 
 # [PLAY THE GAME!](https://js13kgames.com/entries/bounce-back)
 
