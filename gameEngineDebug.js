@@ -178,21 +178,21 @@ function UpdateDebugControls()
 {
     if (debug)
     {
-        if (KeyWasPressed(50)) // 2
+        if (KeyWasPressed("Digit2") || KeyWasPressed("Numpad2")) // 2
             SaveSnapshot();
-        if (KeyWasPressed(51)) // 3
+        if (KeyWasPressed("Digit3") || KeyWasPressed("Numpad3")) // 3
             debugCollision = !debugCollision;
-        if (KeyWasPressed(52)) // 4
+        if (KeyWasPressed("Digit4") || KeyWasPressed("Numpad4")) // 4
             debugParticles = !debugParticles;
-        if (KeyWasPressed(53)) // 5
+        if (KeyWasPressed("Digit5") || KeyWasPressed("Numpad5")) // 5
             godMode = !godMode;
-        if (KeyWasPressed(145)) // scroll lock
+        if (KeyWasPressed("ScrollLock")) // scroll lock
             debug = 0;
-        if (KeyWasPressed(71)) // g
+        if (KeyWasPressed("KeyG")) // g
             godMode=1;
     }
     
-    if (KeyIsDown(70)&&KeyIsDown(82)&&KeyIsDown(65)&&KeyIsDown(78)&&KeyIsDown(75))
+    if (KeyIsDown("KeyF") && KeyIsDown("KeyR") && KeyIsDown("KeyA") && KeyIsDown("KeyN") && KeyIsDown("KeyK"))
     {
         // dev mode - press all keys to spell "FRANK"
         if (!debug)

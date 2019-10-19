@@ -310,9 +310,9 @@ function EngineUpdate()
     {
         // debug speed up / slow down
         let frames = 1;
-        if (debug && KeyIsDown(107))
+        if (debug && KeyIsDown("KeyK"))
             frames = 4;
-        if (debug && KeyIsDown(109))
+        if (debug && KeyIsDown("KeyM"))
             frames = (debugFrame%4==0);
         while(frames--)
         {
@@ -390,19 +390,19 @@ onmousemove   = function(e)
 }
 onkeydown = function(e) 
 { 
-    if (debug && e.keyCode==192)
+    if (debug && e.code=="Backquote")
         e.preventDefault(),ToggleDebugConsole();
     if (debug && document.activeElement && document.activeElement.type == 'textarea')
         return;
         
-    keyInputData[e.keyCode]={isDown:1};
+    keyInputData[e.code]={isDown:1};
 }
 onkeyup = function(e) 
 { 
     if (debug && document.activeElement && document.activeElement.type == 'textarea')
         return;
         
-    if ( keyInputData[e.keyCode] ) keyInputData[e.keyCode].isDown=0;
+    if ( keyInputData[e.code] ) keyInputData[e.code].isDown=0;
 }
 
 function MouseWasPressed()  { return mouseIsDown && !mouseWasDown; }

@@ -250,7 +250,7 @@ function Update()
         speedRunTime += timeDelta;
     
     // restart if dead or won
-    if ((player.IsDead() || winTimer.IsSet()) && KeyWasPressed(27))
+    if ((player.IsDead() || winTimer.IsSet()) && KeyWasPressed("Escape"))
         loadNextLevel = 2;
         
     // load next level when ready
@@ -258,7 +258,7 @@ function Update()
         loadNextLevel = 1;
     
     // debug key N to load next level
-    if (debug && KeyWasPressed(78))
+    if (debug && KeyWasPressed("KeyN"))
         loadNextLevel = 1;
         
     // zoom out on final level
@@ -605,13 +605,13 @@ class Player extends MyGameObject
     
         // move input
         let acceleration = new Vector2();
-        if (KeyIsDown(65))
+        if (KeyIsDown("KeyA"))
             acceleration.x -= 1,this.rotation=0;
-        if (KeyIsDown(68))
+        if (KeyIsDown("KeyD"))
             acceleration.x += 1,this.rotation=2;
-        if (KeyIsDown(87))
+        if (KeyIsDown("KeyW"))
             acceleration.y -= 1,this.rotation=3;
-        if (KeyIsDown(83))
+        if (KeyIsDown("KeyS"))
             acceleration.y += 1,this.rotation=1;
 
         let isOnSand = this.IsOnSand();
@@ -643,7 +643,8 @@ class Player extends MyGameObject
                 PlaySound(16);
             }
         
-            if ((KeyWasPressed(32)||KeyWasPressed(16)) && !this.dashTimer.IsSet())
+            if ((KeyWasPressed("Space") || KeyWasPressed("ShiftLeft") || KeyWasPressed("ShiftRight"))
+                && !this.dashTimer.IsSet())
             {
                 // start dash
                 PlaySound(12);
