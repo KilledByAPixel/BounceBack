@@ -4,6 +4,8 @@
 
 # [PLAY THE GAME!](https://js13kgames.com/entries/bounce-back)
 
+## [Game Design Postmortem](http://frankforce.com/?p=6936)
+
 ![Bounceback Image](/screenshot.png)
 
 ### Controls
