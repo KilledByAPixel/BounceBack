@@ -2,7 +2,7 @@
 # B O U N C E B A C K
 ### A Boomerang Roguelite Game for JS13k by Frank Force
 
-# [PLAY THE BOUNCE BACK!](https://js13kgames.com/entries/bounce-back)
+# [PLAY BOUNCE BACK!](https://js13kgames.com/entries/bounce-back)
 
 ## [Game Design Postmortem](http://frankforce.com/?p=6936)
 
